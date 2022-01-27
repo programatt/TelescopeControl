@@ -1,12 +1,13 @@
 import pytest
 from platform import system
 from serial import Serial, PARITY_NONE, STOPBITS_ONE
+from typing import Dict
 
-from src.equipment.serialmount import SerialMount, parity_value_map, serial_config_keys
+from src.equipment.serialmount import SerialMount, parity_value_map, required_serial_config_keys
 from unittest.mock import MagicMock, Mock, patch
 
 
-def valid_config() -> dict:
+def valid_config() -> Dict:
     return {
         'serial': {
             'port': 'COM1' if system() == 'Windows' else '/dev/cu.usbserial-TEST',
@@ -18,14 +19,13 @@ def valid_config() -> dict:
     }
 
 
-def test_mount_not_connected():
+def test_mount_not_connected_after_init():
     mount = SerialMount(config=valid_config())
 
     assert not mount.connected
 
 
-#  TODO Should be run when the mount is connected
-def test_mount_connected():
+def test_mount_connected_from_serial_port_is_open():
     port = Serial()
     port.open = Mock()
     port.is_open = MagicMock(return_value=True)
@@ -45,16 +45,16 @@ def test_mount_config_valid():
     assert len(errors) == 0
 
 
-@pytest.mark.parametrize("serial_key", serial_config_keys)
-def test_validate_config_missing_serial_values(serial_key):
+@pytest.mark.parametrize("serial_key", required_serial_config_keys)
+def test_validate_config_missing_required_serial_values(serial_key):
     config = valid_config()
     del config['serial'][serial_key]
 
     valid, errors = SerialMount.validate_config(config)
 
     assert not valid
-    assert f'Key: {serial_key} missing from mount serial config' in errors
     assert len(errors) == 1
+    assert f'Key: {serial_key} missing from mount serial config' in errors
 
 
 @pytest.mark.parametrize(
@@ -76,9 +76,11 @@ def test_validate_config_serial_port_valid(system, os, port, expected_valid, mes
     is_valid, errors = SerialMount.validate_config(config)
 
     assert is_valid == expected_valid
-    if not is_valid:
-        assert message in errors
+    if is_valid:
+        assert len(errors) == 0
+    else:
         assert len(errors) == 1
+        assert message in errors
 
 
 @pytest.mark.parametrize('baud_rate,expected_valid', [
@@ -91,7 +93,7 @@ def test_validate_config_serial_port_valid(system, os, port, expected_valid, mes
     (230400, True),
     (230401, False),
 ])
-def test_validate_config_baud_rate_is_integer_greater_than_minimum(baud_rate, expected_valid):
+def test_validate_config_baud_rate_is_integer_in_valid_range(baud_rate, expected_valid):
     config = valid_config()
     config['serial']['baud_rate'] = baud_rate
 
@@ -99,8 +101,10 @@ def test_validate_config_baud_rate_is_integer_greater_than_minimum(baud_rate, ex
 
     assert is_valid == expected_valid
     if not is_valid:
-        assert 'SerialMount serial baud_rate must be an int between 9600 and 203400 inclusive' in errors
         assert len(errors) == 1
+        assert 'SerialMount serial baud_rate must be an int between 9600 and 203400 inclusive' in errors
+    else:
+        assert len(errors) == 0
 
 
 @pytest.mark.parametrize('data_bits,expected_valid', [
@@ -121,8 +125,10 @@ def test_validate_config_data_bits(data_bits, expected_valid):
 
     assert is_valid == expected_valid
     if not is_valid:
-        assert 'SerialMount serial data_bits must be an int between 1 and 8 inclusive' in errors
         assert len(errors) == 1
+        assert 'SerialMount serial data_bits must be an int between 1 and 8 inclusive' in errors
+    else:
+        assert len(errors) == 0
 
 
 @pytest.mark.parametrize('parity', [
@@ -139,8 +145,8 @@ def test_validate_config_parity_invalid_values(parity):
     valid, errors = SerialMount.validate_config(config)
 
     assert not valid
-    assert f'SerialMount serial parity must be one of [e,E,even,Even,n,N,none,None,o,O,odd,Odd] but was \'{parity}\'' in errors
     assert len(errors) == 1
+    assert f'SerialMount serial parity must be one of [e,E,even,Even,n,N,none,None,o,O,odd,Odd] but was \'{parity}\'' in errors
 
 
 @pytest.mark.parametrize('parity', parity_value_map.keys())
@@ -172,8 +178,8 @@ def test_validate_config_stop_bits(stop_bits, expected_valid):
 
     assert is_valid == expected_valid
     if not is_valid:
-        assert f'SerialMount serial stop_bits must be an int one of [1,1.5,2] but was \'{stop_bits}\'' in errors
         assert len(errors) == 1
+        assert f'SerialMount serial stop_bits must be an int one of [1,1.5,2] but was \'{stop_bits}\'' in errors
 
 
 def test_serial_port_apply_config():
