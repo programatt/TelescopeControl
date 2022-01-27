@@ -1,8 +1,8 @@
 import pytest
 from platform import system
-from serial import Serial
+from serial import Serial, PARITY_NONE, STOPBITS_ONE
 
-from src.equipment.serialmount import SerialMount, valid_parity_values, serial_config_keys
+from src.equipment.serialmount import SerialMount, parity_value_map, serial_config_keys
 from unittest.mock import MagicMock, Mock, patch
 
 
@@ -19,7 +19,7 @@ def valid_config() -> dict:
 
 
 def test_mount_not_connected():
-    mount = SerialMount(config={})
+    mount = SerialMount(config=valid_config())
 
     assert not mount.connected
 
@@ -143,7 +143,7 @@ def test_validate_config_parity_invalid_values(parity):
     assert len(errors) == 1
 
 
-@pytest.mark.parametrize('parity', valid_parity_values)
+@pytest.mark.parametrize('parity', parity_value_map.keys())
 def test_validate_config_parity_valid_values(parity):
     config = valid_config()
     config['serial']['parity'] = parity
@@ -155,14 +155,14 @@ def test_validate_config_parity_valid_values(parity):
 
 
 @pytest.mark.parametrize('stop_bits,expected_valid', [
-    (10000.0, False),
     (False, False),
     ('foo', False),
     (-1, False),
-    (0, True),
+    (0, False),
     (1, True),
+    (1.5, True),
     (2, True),
-    (3, False),
+    (3, False)
 ])
 def test_validate_config_stop_bits(stop_bits, expected_valid):
     config = valid_config()
@@ -172,5 +172,18 @@ def test_validate_config_stop_bits(stop_bits, expected_valid):
 
     assert is_valid == expected_valid
     if not is_valid:
-        assert f'SerialMount serial stop_bits must be an int one of [0,1,2] but was \'{stop_bits}\'' in errors
+        assert f'SerialMount serial stop_bits must be an int one of [1,1.5,2] but was \'{stop_bits}\'' in errors
         assert len(errors) == 1
+
+
+def test_serial_port_apply_config():
+    config = valid_config()
+    port = Serial()
+
+    SerialMount.apply_config_to_serial_port(config, port)
+
+    assert port.port == config['serial']['port']
+    assert port.baudrate == config['serial']['baud_rate']
+    assert port.bytesize == config['serial']['data_bits']
+    assert port.parity == PARITY_NONE
+    assert port.stopbits == STOPBITS_ONE
