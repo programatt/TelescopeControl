@@ -139,7 +139,7 @@ def test_validate_config_parity_invalid_values(parity):
     valid, errors = SerialMount.validate_config(config)
 
     assert not valid
-    assert f'SerialMount serial parity must be one of [e,even,Even,n,none,None,o,odd,Odd] but was \'{parity}\'' in errors
+    assert f'SerialMount serial parity must be one of [e,E,even,Even,n,N,none,None,o,O,odd,Odd] but was \'{parity}\'' in errors
     assert len(errors) == 1
 
 

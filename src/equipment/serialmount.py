@@ -10,7 +10,7 @@ import re
 unix_port_re = re.compile(r'\/dev\/[a-zA-Z0-9\-]+')
 win_port_re = re.compile(r'COM[0-9]')
 serial_config_keys = ['port', 'baud_rate', 'data_bits', 'stop_bits', 'parity']
-valid_parity_values = ['e', 'even', 'Even', 'n', 'none', 'None', 'o', 'odd', 'Odd']
+valid_parity_values = ['e', 'E', 'even', 'Even', 'n', 'N', 'none', 'None', 'o', 'O', 'odd', 'Odd']
 valid_stop_bits = [0, 1, 2]
 
 
