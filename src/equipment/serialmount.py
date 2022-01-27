@@ -51,7 +51,6 @@ class SerialMount:
         else:
             self._port = serial_port
 
-
     @property
     def connected(self) -> bool:
         return self._port.is_open
@@ -60,11 +59,11 @@ class SerialMount:
         self._port.open()
 
     @staticmethod
-    def apply_config_to_serial_port(config: Dict, port: Serial):
+    def apply_config_to_serial_port(config: Dict, port: Serial) -> None:
         port.port = config['serial']['port']
         port.baudrate = config['serial']['baud_rate']
         port.bytesize = config['serial']['data_bits']
-        port.stopbits = config['serial']['stop_bits']
+        port.stopbits = stop_bits_map[config['serial']['stop_bits']]
         port.parity = parity_value_map[config['serial']['parity']]
 
     @staticmethod
