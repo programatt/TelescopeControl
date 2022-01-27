@@ -1,10 +1,23 @@
+from astropy.coordinates import EarthLocation
 import pytest
 from platform import system
-from serial import Serial, PARITY_NONE, STOPBITS_ONE
+from serial import Serial, PARITY_NONE, STOPBITS_ONE, EIGHTBITS
 from typing import Dict
 
 from src.equipment.serialmount import SerialMount, parity_value_map, required_serial_config_keys
 from unittest.mock import MagicMock, Mock, patch
+
+
+class TestSerialMount(SerialMount):
+    __test__ = False
+    _position: EarthLocation = EarthLocation(0, 0, 0)
+
+    def __init__(self, config, serial_port = None):
+        super().__init__(config=config, serial_port=serial_port)
+
+    @property
+    def position(self):
+        return self._position
 
 
 def valid_config() -> Dict:
@@ -20,7 +33,7 @@ def valid_config() -> Dict:
 
 
 def test_mount_not_connected_after_init():
-    mount = SerialMount(config=valid_config())
+    mount = TestSerialMount(config=valid_config())
 
     assert not mount.connected
 
@@ -29,7 +42,7 @@ def test_mount_connected_from_serial_port_is_open():
     port = Serial()
     port.open = Mock()
     port.is_open = MagicMock(return_value=True)
-    mount = SerialMount(config={}, serial_port=port)
+    mount = TestSerialMount(config={}, serial_port=port)
 
     mount.connect()
 
@@ -112,8 +125,10 @@ def test_validate_config_baud_rate_is_integer_in_valid_range(baud_rate, expected
     (False, False),
     ('foo', False),
     (-1, False),
-    (0, False),
-    (1, True),
+    (4, False),
+    (5, True),
+    (6, True),
+    (7, True),
     (8, True),
     (9, False),
 ])
@@ -126,7 +141,7 @@ def test_validate_config_data_bits(data_bits, expected_valid):
     assert is_valid == expected_valid
     if not is_valid:
         assert len(errors) == 1
-        assert 'SerialMount serial data_bits must be an int between 1 and 8 inclusive' in errors
+        assert 'SerialMount serial data_bits must be an int between 5 and 8 inclusive' in errors
     else:
         assert len(errors) == 0
 
@@ -190,6 +205,6 @@ def test_serial_port_apply_config():
 
     assert port.port == config['serial']['port']
     assert port.baudrate == config['serial']['baud_rate']
-    assert port.bytesize == config['serial']['data_bits']
+    assert port.bytesize == EIGHTBITS
     assert port.parity == PARITY_NONE
     assert port.stopbits == STOPBITS_ONE
