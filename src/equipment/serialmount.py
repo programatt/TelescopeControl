@@ -59,24 +59,20 @@ class SerialMount:
                     has_error = True
                     errors.append(f'SerialMount Serial Port wrong format, expected \'COM<n>\' but was \'{value}\'')
 
-            if key == 'baud_rate':
-                if (type(value) is not int) or value < 9600 or value > 230400:
-                    has_error = True
-                    errors.append('SerialMount serial baud_rate must be an int between 9600 and 203400 inclusive')
+            if key == 'baud_rate' and (type(value) is not int or value < 9600 or value > 230400):
+                has_error = True
+                errors.append('SerialMount serial baud_rate must be an int between 9600 and 203400 inclusive')
 
-            if key == 'data_bits':
-                if (type(value) is not int) or value < 1 or value > 8:
-                    has_error = True
-                    errors.append('SerialMount serial data_bits must be an int between 1 and 8 inclusive')
+            if key == 'data_bits' and (type(value) is not int or value < 1 or value > 8):
+                has_error = True
+                errors.append('SerialMount serial data_bits must be an int between 1 and 8 inclusive')
 
-            if key == 'parity':
-                if (type(value) is not str) or value not in valid_parity_values:
-                    has_error = True
-                    errors.append(f'SerialMount serial parity must be one of [{",".join(valid_parity_values)}] but was \'{value}\'')
+            if key == 'parity' and (type(value) is not str or value not in valid_parity_values):
+                has_error = True
+                errors.append(f'SerialMount serial parity must be one of [{",".join(valid_parity_values)}] but was \'{value}\'')
 
-            if key == 'stop_bits':
-                if (type(value) is not int) or value not in valid_stop_bits:
-                    has_error = True
-                    errors.append(f'SerialMount serial stop_bits must be an int one of [{",".join([str(x) for x in valid_stop_bits])}] but was \'{value}\'')
+            if key == 'stop_bits' and (type(value) is not int or value not in valid_stop_bits):
+                has_error = True
+                errors.append(f'SerialMount serial stop_bits must be an int one of [{",".join([str(x) for x in valid_stop_bits])}] but was \'{value}\'')
 
         return not has_error, errors
